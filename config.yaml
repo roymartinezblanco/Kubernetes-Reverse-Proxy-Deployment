@@ -1,0 +1,15 @@
+proxy:
+  listen:
+    address: "127.0.0.1"
+    port: 8080
+  
+  services:
+    - name: load-balancer
+      domain: roymartinez.dev
+      hosts:
+      - address: "127.0.0.1"
+        port: 8081
+        name: "a"
+      - address: "127.0.0.1"
+        port: 8081
+        name: "b"
