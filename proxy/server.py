@@ -23,7 +23,7 @@ def configure_error_logging():
 
 
     LOG_FILENAME = directory+"event.log"
-    print(LOG_FILENAME)
+    
     # Setup file logging as well
     fh = logging.FileHandler(LOG_FILENAME)
     fh.setLevel(logging.DEBUG)
