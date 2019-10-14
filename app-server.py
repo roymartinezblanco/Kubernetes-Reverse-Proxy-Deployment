@@ -1,7 +1,7 @@
 from http.server import BaseHTTPRequestHandler,HTTPServer
-import requests, logging,urllib3, json, socketserver,socket, os
+import  logging, json, os
 
-urllib3.disable_warnings()
+
 logger = logging.getLogger("app-log")
 
 
@@ -57,7 +57,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 def startServer():
     port = 8081
-    ip = '0.0.0.0'
+    ip = '127.0.0.1'
     configure_error_logging()
     logger.info('http app server is running')
 
