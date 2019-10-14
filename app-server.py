@@ -57,7 +57,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 def startServer():
     port = 8081
-    ip = '127.0.0.1'
+    ip = '0.0.0.0'
     configure_error_logging()
     logger.info('http app server is running')
 

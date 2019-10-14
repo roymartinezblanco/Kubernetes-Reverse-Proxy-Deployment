@@ -1,8 +1,8 @@
-FROM python:3
+FROM python:3.7-alpine
 ADD app-server.py /
 ADD requirements.txt /
 ADD config.yaml /
 RUN pip install -r requirements.txt
 EXPOSE 8081
-ENV LISTEN_PORT=8081
+
 CMD python app-server.py
