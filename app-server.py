@@ -1,5 +1,5 @@
 from http.server import BaseHTTPRequestHandler,HTTPServer
-import  logging, json, os
+import  logging, json, os, datetime
 
 
 logger = logging.getLogger("app-log")
@@ -36,11 +36,18 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self.server= ""
                 self.server_version = "APP Server"
                 self.sys_version = ""
-                
+                #Mon, 18 Jul 2016 02:36:04 GMT
                 self.send_response_only(200)
+                self.send_header('Server','Jeju')
+                
+                x = datetime.datetime.now()
+                self.send_header('Date',x.strftime("%c"))
                 self.send_header('Content-type','application/json')
-                self.end_headers()
                 body = {"message":"you got this!"}
+                self.send_header('Content-Length',len(json.dumps(body).encode()))
+
+                self.end_headers()
+                
                 self.wfile.write(json.dumps(body).encode())
                 sent = True
                 
@@ -56,8 +63,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 
 def startServer():
-    port = 8081
-    ip = '127.0.0.1'
+    port = 8000
+    #ip = '127.0.0.1'
+    ip = '0.0.0.0'
     configure_error_logging()
     logger.info('http app server is running')
 
