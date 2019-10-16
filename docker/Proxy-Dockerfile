@@ -2,7 +2,7 @@ FROM python:3.7-alpine
 ADD proxy-server.py /
 ADD requirements.txt /
 ADD config.yaml /
+ADD bootstrap.sh /
 RUN pip install -r requirements.txt
-EXPOSE 8081
-ENV LISTEN_PORT=8081
-CMD python proxy-server.py
+EXPOSE 8888
+CMD sh bootstrap.sh

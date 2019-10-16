@@ -6,6 +6,7 @@ logger = logging.getLogger("proxy-Log")
 urllib3.disable_warnings()
 config = None
 n = -1
+nodes=[]
 origins = []
 
 def configure_error_logging():
@@ -20,7 +21,6 @@ def configure_error_logging():
     directory = "/tmp/proxy/"
     if not os.path.exists(directory):
         os.makedirs(directory)
-
 
     LOG_FILENAME = directory+"event.log"
     
@@ -39,27 +39,21 @@ class ProxyHTTPRequestHandler(BaseHTTPRequestHandler):
             try:
                 url = 'https://{}{}'.format(hostname, self.path)
 
-                incommingHost = dict(self.headers.items())['Host']
-                service = findService("load-balancer")
-                o = origins[balanceOrigin()]
+                s =roundRobinService()
+                o = roundRobinOrigin(s)
                
                 self.server= ""
                 self.server_version = ""
                 self.sys_version = ""
-                
-                endpoint="http://{}:{}{}".format(o['address'],o['port'],self.path)
+
+                endpoint="http://{}:{}{}".format(nodes[s][2][o]['address'],nodes[s][2][o]['port'],self.path)
                 
                
                 http = requests.Session()
-                resp = http.get(endpoint, verify=False)
-        
-            
-                
-                       
+                resp = http.get(endpoint, verify=False) 
                 self.send_response_only(resp.status_code)
-                self.send_header("APP Server","{}-{}".format(o['name'],o['address']))
+                self.send_header("Host","{}-{}-{}".format(nodes[s][0],nodes[s][2][o]['address'],nodes[s][2][o]['port']))
                 for k,v in resp.headers.items():
-            
                     self.send_header(k,v)
                 self.end_headers()
                              
@@ -81,23 +75,40 @@ def startServer():
     httpd = HTTPServer(server_address, ProxyHTTPRequestHandler)
     logger.info('http proxy server is running')
     httpd.serve_forever()
+    
     return
 
-def findService(service:str):
+def findServices():
     for s in config['proxy']['services']:
         if s['name'] == service:
             return s
     return None
 
-def getOrigins(service:dict):
+def getOrigins():
+    global nodes
+    services = config['proxy']['services']
+    for s in services:
+        o=[]
+        for h in s['host']:
+            i={}
+            i['address']=h['address']
+            i['port']=h['port']
+            o.append(i)
+        temp=[s['name'],-1,o]
+        nodes.append(temp)
+
+
+def roundRobinService():
     
-    for s in service['hosts']:
-        origins.append(s)
-##roundRobin
-def balanceOrigin():
     global n
     n += 1
-    return (n % len(origins))
+    return (n% len(nodes))
+
+def roundRobinOrigin(i):
+    
+    global n
+    nodes[i][1] += 1
+    return (n% len(nodes[i][2]))
 
 def load_proxy_config(config_file):
     with open(config_file, 'r') as stream:
@@ -110,9 +121,7 @@ def load_proxy_config(config_file):
 if __name__ == '__main__':
     configure_error_logging()
     config= load_proxy_config("config.yaml")
-    service = findService("load-balancer")
-    getOrigins(service)
-
-
+    getOrigins()
     startServer()
+ 
 

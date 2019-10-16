@@ -1,0 +1,10 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-proxy
+  annotations:
+    http.port: "80"
+spec: 
+  backend: 
+    serviceName: service-proxy
+    servicePort: 8888

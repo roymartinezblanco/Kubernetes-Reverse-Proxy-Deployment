@@ -1,0 +1,13 @@
+proxy:
+  listen:
+    address: "0.0.0.0"
+    port: 8888
+  services:
+    - name: service-app-1
+      host:
+      - address: "10.103.134.20"
+        port: 8081
+    - name: service-app-2
+      host:
+      - address: "10.100.206.64"
+        port: 8081

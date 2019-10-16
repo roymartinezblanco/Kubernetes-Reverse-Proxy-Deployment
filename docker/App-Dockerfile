@@ -1,8 +1,6 @@
 FROM python:3.7-alpine
 ADD app-server.py /
 ADD requirements.txt /
-ADD config.yaml /
 RUN pip install -r requirements.txt
-EXPOSE 8081
-
+EXPOSE 8000
 CMD python app-server.py

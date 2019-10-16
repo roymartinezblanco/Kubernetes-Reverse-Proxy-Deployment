@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-app-server
+spec: 
+  replicas: 3
+  selector:
+    matchLabels:
+      app: python-app-server
+  template:
+    metadata:
+      labels:
+        app: python-app-server
+    spec:
+      containers:
+      - name: python-app-server
+        image: rmartinezb/python-app-server:lastest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-proxy-server
+spec: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python-proxy-server
+  template:
+    metadata:
+      labels:
+        app: python-proxy-server
+    spec:
+      containers:
+      - name: python-proxy-server
+        image: rmartinezb/python-proxy-server:lastest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8999
