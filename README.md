@@ -2,21 +2,32 @@
 
 # Project 
 
-This Project is a test that I to share my expirence creating a Kubernetes Cluster with 2 apps that talk to each other 
+This Project is a test that I to share my experience creating a Kubernetes Cluster with 2 apps that talk to each other.
+
+Goal: Create an application that will be fronted by a Proxy Server that will act as a load balancer for the app servers. Because I'll be  creating the infrastructure on Kubernetes. This means that we will have 2 types of service, 1 for the proxy and another for app servers.
+
+Then I'll be creating 2 services of the type `app-server` and each one will have 3 replicas (meaning 3 servers) to ensure high availability. This service will be self-healing in the sense that if a replica goes down it will automatically be recreated by Kubernetes.
+
+TODO: I have not completed everything I would have liked for this initial part of the project but I wanted to mention some of the enhancements I will add:
+* Like I stated before, the infrastructure is self-healing but I would add a `liveness Probe` to the deployment to monitor not only the health of the container but also monitor the health of the application by probing for HTTP errors that would indicate the state of the app.
+* I would enhance the proxy application by adding a fail-over mechanism that would prevent errors from reaching end-users. This would be achieved by sending a request to an alternate service in the event of a HTTP 5xx server error response from the application server. Also add horizontal scaling based on the load of the server.
+
+
+## Project Components:
 * Application Development/Implementation
   * Python APP Server
   * Python Proxy Server
 * Deployment/Automation
   * Kubernees
   * helm
-* Deployment Strategy
+* Testing
  
 
 
 # Application Development
 ## APP Server
 
-[This application](app/app-server.py) will respond to http request with a JSON Body with a 200 ok message. It will also listen for the HTTP requests with the path `/fail` which will cause the application server to die.
+[This application](app/app-server.py) will respond to HTTP request with a JSON body with a 200 ok message. It will also listen for the HTTP requests with the path `/fail` which will cause the application server to die.
 
 Functions/Classes:
 * startServer: Creates the httpServer and configures it to listen on TCP Port 8000
@@ -56,7 +67,6 @@ def configure_error_logging():
 ```python
 class HTTPRequestHandler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
-
     def do_GET(self, body=True):
             try:
                 #Recreate Server Header to obscure Software Versions
@@ -96,13 +106,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 
 ### Deploy APP Server Docker Image
-Beause we need to deploy this application to Kubernetes we need to create a image that we will later deploy in our cluster. 
+Because we need to deploy this application to Kubernetes we need to create an image that we will later deploy in our cluster. 
 
-To do this I created my image with this [dockerfile](docker/App-Dockerfile) (All Docker files can be found under the /docker/ directory.). I chose to use alpine since its light weight, then copied my app and requirements for it. Which I generated with the command `python3 -m  pip freeze > requirements.txt`.
+To do this I created my image with this [dockerfile](docker/App-Dockerfile) (All Docker files can be found under the /docker/ directory.). I chose to use alpine since its lightweight, then copied my app and requirements for it. Which I generated with the command `python3 -m  pip freeze > requirements.txt`.
 
 ```docker
 FROM python:3.7-alpine
-ADD app-server.py /
+ADD app/app-server.py /
 ADD requirements.txt /
 RUN pip install -r requirements.txt
 EXPOSE 8000
@@ -130,7 +140,7 @@ docker run -p 80:8000 python-app-server
 
 ## Proxy Server
 
-The application will accept http requests on port a configurable port and route traffic to services that are also configurable.
+The application will accept HTTP requests on port a configurable port and route traffic to services that are also configurable.
 
 Functions/Classes:
 * configure_error_logging: configure_error_logging: Uses the logging liberty and logs all events to `/tmp/proxy/event.log`
@@ -243,21 +253,32 @@ def roundRobinOrigin(i):
     return (n% len(nodes[i][2]))
 ```
 ### Deploy Proxy Server Docker Image
-Again, we need to deploy this application to Kubernetes we need to create a image that we will later deploy in our cluster, same steps as app server
+Again, I need to deploy this application to Kubernetes we need to create an image that we will later deploy in our cluster, same steps as the app server
 
 To do this I created my image with this [dockerfile](docker/Proxy-Dockerfile) (All Docker files can be found under the /docker/ directory.). requirements.txt`.
 
+
+
+
 ```docker
 FROM python:3.7-alpine
-ADD proxy-server.py /
+ADD proxy/proxy-server.py /
 ADD requirements.txt /
-ADD config.yaml /
-ADD bootstrap.sh /
+ADD proxy/config.yaml /
+ADD proxy/bootstrap.sh /
 RUN pip install -r requirements.txt
 EXPOSE 8888
 CMD sh bootstrap.sh
 ```
+If you notice I have a `bootstrap.sh` script that I'm executing. This is because I don't want the proxy server to start without first modifying its configuration. This script creates an infinite loop to make the server staying up and running.
 
+```sh
+#!/bin/bash
+
+while :;do 
+        sleep 300
+done
+```
 Steps:
 1. Build the image using the docker file above as follows.
 ```sh
@@ -274,71 +295,191 @@ docker push rmartinezb/python-proxy-server
 At this point the image is ready to be used.
 
 
-
-![Drag Racing](assets/health.gif)
-
-http http://127.0.0.1 -b
-
-
 # Deployment
+The deployment of this project I used Kubernetes and this is where a lot my time was spent. Not because it is complicated, but because there is a lot to learn.
 
-I 
+Components used:
+* [kubectr](https://kubernetes.io/docs/tasks/tools/install-kubectl/): 
+* [minikube](https://kubernetes.io/esen/docs/tasks/tools/install-minikube/#instalar-minikube)
+* [helm](https://helm.sh/)
 
-# Suporting Documentation:
-* https://kubernetes.io/blog/2019/07/23/get-started-with-kubernetes-using-python/
-
-* https://matthewpalmer.net/kubernetes-app-developer/articles/guide-install-kubernetes-mac.html
-
-
-https://blog.realkinetic.com/building-minimal-docker-containers-for-python-applications-37d0272c52f3
-
-https://runnable.com/docker/python/dockerize-your-python-application
-
-
-
-kubectl delete services python-app-service
-kubectl delete deployment python-app-server
-
-
-
-## Run container
+In my case I used brew to install all of these components, the issue I was was with helm since it got installed with version 1.6 and I faced issues with `tiller` not getting installed.
+```
+Error: error installing: the server could not find the requested resource
+```
+This was resolve by a form, which I sadly lost the link that I wanted to share.
 
 ```sh
-docker run -p 80:8000 python-app-server
+helm init --override spec.selector.matchLabels.'name'='tiller',spec.selector.matchLabels.'app'='helm' --output yaml | sed 's@apiVersion: extensions/v1beta1@apiVersion: apps/v1@' | kubectl apply -f -
 ```
-kubectl delete deploy tiller-deploy -n kube-system
 
-kubectl delete service tiller-deploy -n kubesystem
-kubectl create serviceaccount tiller --namespace kube-system
-kubectl create clusterrolebinding tiller-cluster-rule  --clusterrole=cluster-admin  --serviceaccount=kube-system:tiller
+Once `Helm` was up and running I was able to create the helm chart template within my procject:
+```sh
+helm create chart # Not a very creative name :)
+```
 
-helm init --service-account tiller --override spec.selector.matchLabels.'name'='tiller',spec.selector.matchLabels.'app'='helm' --output yaml | sed 's@apiVersion: extensions/v1beta1@apiVersion: apps/v1@' | kubectl apply -f -
+<h1 align="center">
+  <br>
+      <img src="assets/dir.png">
+  <br>
+</h1>
 
+# Deployement
 
- kubectl create serviceaccount tiller --namespace kube-system
- kubectl create clusterrolebinding tiller-cluster-rule  --clusterrole=cluster-admin  --serviceaccount=kube-system:tiller
+## Helm
 
+First we start with deploying the base app/backend, here as said before we have 3 replicas and we are adding what image we will be using to create or app serve and he `TCP` port that the app will listen to. The `replicas` spec is what enables kubernates to know our desiered state, meaning if a `replica` fails it will create 1 to meat the 3/3 that is configued below.
 
- apiVersion: extensions/v1beta1
+```yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-app-server
+spec: 
+  replicas: 3
+  selector:
+    matchLabels:
+      app: python-app-server
+  template:
+    metadata:
+      labels:
+        app: python-app-server
+    spec:
+      containers:
+      - name: python-app-server
+        image: rmartinezb/python-app-server:lastest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+```
+
+Also create a very similar deployment for the Proxy server.
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-proxy-server
+spec: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python-proxy-server
+  template:
+    metadata:
+      labels:
+        app: python-proxy-server
+    spec:
+      containers:
+      - name: python-proxy-server
+        image: rmartinezb/python-proxy-server:lastest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8999
+```
+### Services
+
+Services is what enables us to define how we will connect to the pods and be the front for them.
+
+ The `port` is to what the service will be listending and then forwarding to the `targetport`.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-app-1
+spec:
+  selector:
+    app: python-app-server
+  ports:
+    - name: main
+      protocol: TCP
+      port: 8081
+      targetPort: 8000
+```
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-proxy
+spec:
+  selector:
+    app: python-proxy-server
+  ports:
+    - port: 8888
+      protocol: TCP
+      targetPort: 8888
+```
+### Ingress
+
+Once configured the services we need to add a way to communicate with the services. The `ingress` configured below is simple, we are opening `port 80` and sending the traffic to the `proxy-service` via `port 8888`.
+
+```yaml
+apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: ingress-app
+  name: ingress-proxy
   annotations:
     http.port: "80"
 spec: 
   backend: 
-    serviceName: service-app-1
-    servicePort: 80
+    serviceName: service-proxy
+    servicePort: 8888
 
----
+```
 
-https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+At this point I have everything to create my `helm chart installation`.  
+```sh
+helm install chart/
+```
+![Helm install](assets/helm-install.png)
 
-kubectl exec -it python-proxy-server-5789f948cf-pj4p4 -- /bin/sh
+Just like that everything was created. Now we need to configuring the proxy server. To do this, we need to connect to the proxy pod with the following command:
+```sh
+kubectl exec -it python-proxy-server-xxxxxxx -- /bin/sh
+```
 
-==> v1/Service
-NAME           TYPE       CLUSTER-IP     EXTERNAL-IP  PORT(S)   AGE
-service-app-1  ClusterIP  10.103.75.163  <none>       8081/TCP  0s
-service-app-2  ClusterIP  10.106.17.9    <none>       8081/TCP  0s
-service-proxy  ClusterIP  10.97.152.69   <none>       8888/TCP  0s
+Now we need to modify the config.yaml file with the IP's from the previuos output.
+```yaml
+proxy:
+  listen:
+    address: "0.0.0.0"
+    port: 8888
+  services:
+    - name: service-app-1
+      host:
+      - address: "10.99.246.53"
+        port: 8081
+    - name: service-app-2
+      host:
+      - address: "10.98.58.70"
+        port: 8081
+```
+And our last step is to execute the proxy server.
+```sh
+python3 server-proxy.py
+```
+
+# Testing
+
+Now we have everything up and configured but I also wanted to share how I tested my Project.
+
+
+We will be running two commands, one to see a response from the APP's and another to test the Deployment strategy by failing a server. The requests from my machine will be done to the Kubernates IP and because the are sending the request to port 80 our ingress and services will route our request.
+
+```
+http http://192.168.99.101/ --print=hb
+http http://192.168.99.101/fail --verify=no --print=hb
+```
+![Error Prevention](assets/health.gif)
+
+
+
+
+# Supporting Documentation:
+* https://kubernetes.io/blog/2019/07/23/get-started-with-kubernetes-using-python/
+
+* https://matthewpalmer.net/kubernetes-app-developer/articles/guide-install-kubernetes-mac.html
+* https://runnable.com/docker/python/dockerize-your-python-application
+* https://kubernetes.io/docs/tasks/tools/install-minikube/
+* https://kubernetes.io/docs/home/
 
