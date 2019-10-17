@@ -1,15 +1,14 @@
 
 
-# Project 
+# Introduction 
 
-This Project is a test project that I to share my experience creating a Kubernetes Cluster with 2 apps that talk to each other.
+I wanted to share my experience with this project where I created a Kubernetes Cluster with 2 apps that talk to each other.
+Goal: Create an application that will be fronted by a Proxy Server that will act as a load balancer for the app servers. 
 
-Goal: Create an application that will be fronted by a Proxy Server that will act as a load balancer for the app servers. Because I'll be  creating the infrastructure on Kubernetes. This means that we will have 2 types of service, 1 for the proxy and another for app servers.
-
-Then I'll be creating 2 services of the type `app-server` and each one will have 3 replicas (meaning 3 servers) to ensure high availability. This service will be self-healing in the sense that if a replica goes down it will automatically be recreated by Kubernetes.
+I'll be  creating the infrastructure on Kubernetes. This means that we will have 2 types of services, 1 for the proxy and another for app servers. Then I'll be creating 2 services of the type `app-server` and each one will have 3 replicas (meaning 3 servers) to ensure high availability. This service will be self-healing in the sense that if a replica goes down it will automatically be recreated by Kubernetes.
 
 TODO: I have not completed everything I would have liked for this initial part of the project but I wanted to mention some of the enhancements I will add:
-* Like I stated before, the infrastructure is self-healing but I would add a `liveness Probe` to the deployment to monitor not only the health of the container but also monitor the health of the application by probing for HTTP errors that would indicate the state of the app.
+* Like I stated before, the infrastructure is self-healing but I would add a `liveness Probe` to the deployment, to monitor not only the health of the container but also monitor the health of the application by probing for HTTP errors that would indicate the state of the app.
 * I would enhance the proxy application by adding a fail-over mechanism that would prevent errors from reaching end-users. This would be achieved by sending a request to an alternate service in the event of a HTTP 5xx server error response from the application server. Also add horizontal scaling based on the load of the server.
 
 
