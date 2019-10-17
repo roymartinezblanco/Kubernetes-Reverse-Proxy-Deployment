@@ -2,7 +2,7 @@
 
 # Project 
 
-This Project is a test that I to share my experience creating a Kubernetes Cluster with 2 apps that talk to each other.
+This Project is a test project that I to share my experience creating a Kubernetes Cluster with 2 apps that talk to each other.
 
 Goal: Create an application that will be fronted by a Proxy Server that will act as a load balancer for the app servers. Because I'll be  creating the infrastructure on Kubernetes. This means that we will have 2 types of service, 1 for the proxy and another for app servers.
 
