@@ -30,6 +30,7 @@ TODO: I have not completed everything I would have liked for this initial part o
 
 Functions/Classes:
 * startServer: Creates the httpServer and configures it to listen on TCP Port 8000
+
 ```python
 def startServer():
     port = 8000
@@ -40,7 +41,9 @@ def startServer():
     httpd = HTTPServer((ip,port), HTTPRequestHandler)
     httpd.serve_forever()
 ```
+
 * configure_error_logging: Uses the logging liberty and logs all events to /tmp/proxy/event.log 
+
 ```python
 def configure_error_logging():
     logger.setLevel(logging.DEBUG)
@@ -62,7 +65,9 @@ def configure_error_logging():
     fh.setFormatter(formatter)
     logger.addHandler(fh)
 ```
+
 * HTTPRequestHandler/do_GET: Handle for HTTP Get Requests. It creates a HTTP response body and simulates an outage.
+
 ```python
 class HTTPRequestHandler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
@@ -120,21 +125,29 @@ CMD python app-server.py
 
 Steps:
 1. Build the image using the docker file above as follows.
+
 ```sh
 docker build -t python-app-server -f docker/App-Dockerfile .
 ```
+
 2. Tag the image as latest
+
 ```sh
 docker tag XXXXXX rmartinezb/python-app-server:lastest
 ```
+
 3. Push to repository.
+
 ```sh
 docker push rmartinezb/python-app-server
 ```
+
 At this point the image is ready to be used.
+
 ```sh
 docker run -p 80:8000 python-app-server
 ```
+
 ![Test APP](assets/test-app.png)
 
 ## Proxy Server
@@ -143,7 +156,8 @@ The application will accept HTTP requests on port a configurable port and route 
 
 Functions/Classes:
 * configure_error_logging: configure_error_logging: Uses the logging liberty and logs all events to `/tmp/proxy/event.log`
-```
+
+```python
 def configure_error_logging():
     logger.setLevel(logging.DEBUG)
     # Format for our loglines
@@ -165,7 +179,9 @@ def configure_error_logging():
     fh.setFormatter(formatter)
     logger.addHandler(fh)
 ```
+
 * ProxyHTTPRequestHandler/do_get: Handle for HTTP Get Requests. It load balances traffic across multiple services/nodes.
+
 ```python
 class ProxyHTTPRequestHandler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
@@ -204,7 +220,9 @@ class ProxyHTTPRequestHandler(BaseHTTPRequestHandler):
                 logger.error("{} - {} - {} ".format(self.address_string(),self.requestline,200))
                 self.close_connection = 1
 ```
+
 * load_proxy_config: Reads/Opens `config.yaml` configuration file and converts it to a dict. 
+
 ```python
 def load_proxy_config(config_file):
     with open(config_file, 'r') as stream:
@@ -213,7 +231,9 @@ def load_proxy_config(config_file):
         except yaml.YAMLError as exc:
             print(exc)
 ```
+
 * findServices: Finds services within yaml config file and passes to `getOrigins()` to find nodes to route traffic.
+
 ```python
 def findServices():
     for s in config['proxy']['services']:
@@ -222,6 +242,7 @@ def findServices():
     return None
 
 ```
+
 ```python
 def getOrigins():
     global nodes
@@ -236,8 +257,10 @@ def getOrigins():
         temp=[s['name'],-1,o]
         nodes.append(temp)
 ```
+
 * roundRobinService: Uses RoundRobin to route to services and onces service is selected calls `roundRobinOrigin()` to select node.
 * roundRobinOrigin: Uses Round Robin to route to multiple nodes.
+
 ```python
 def roundRobinService():
     
@@ -269,6 +292,7 @@ RUN pip install -r requirements.txt
 EXPOSE 8888
 CMD sh bootstrap.sh
 ```
+
 If you notice I have a `bootstrap.sh` script that I'm executing. This is because I don't want the proxy server to start without first modifying its configuration. This script creates an infinite loop to make the server staying up and running.
 
 ```sh
@@ -280,17 +304,23 @@ done
 ```
 Steps:
 1. Build the image using the docker file above as follows.
+
 ```sh
 docker build -t python-proxy-server -f docker/Proxy-Dockerfile .
 ```
+
 2. Tag the image as latest
+
 ```sh
 docker tag XXXXXX rmartinezb/python-proxy-server:lastest
 ```
+
 3. Push to repository.
+
 ```sh
 docker push rmartinezb/python-proxy-server
 ```
+
 At this point the image is ready to be used.
 
 
