@@ -17,7 +17,7 @@ TODO: I have not completed everything I would have liked for this initial part o
   * Python APP Server
   * Python Proxy Server
 * Deployment/Automation
-  * Kubernees
+  * Kubernetes
   * helm
 * Testing
  
@@ -312,7 +312,7 @@ This was resolve by a form, which I sadly lost the link that I wanted to share.
 helm init --override spec.selector.matchLabels.'name'='tiller',spec.selector.matchLabels.'app'='helm' --output yaml | sed 's@apiVersion: extensions/v1beta1@apiVersion: apps/v1@' | kubectl apply -f -
 ```
 
-Once `Helm` was up and running I was able to create the helm chart template within my procject:
+Once `Helm` was up and running I was able to create the helm chart template within my project:
 ```sh
 helm create chart # Not a very creative name :)
 ```
@@ -327,7 +327,7 @@ helm create chart # Not a very creative name :)
 
 ## Helm
 
-First we start with deploying the base app/backend, here as said before we have 3 replicas and we are adding what image we will be using to create or app serve and he `TCP` port that the app will listen to. The `replicas` spec is what enables kubernates to know our desiered state, meaning if a `replica` fails it will create 1 to meat the 3/3 that is configued below.
+First we start with deploying the base app/backend, here as said before we have 3 replicas and we are adding what image we will be using to create or app serve and he `TCP` port that the app will listen to. The `replicas` spec is what enables Kubernetes to know our desired state, meaning if a `replica` fails it will create 1 to meat the 3/3 that is configured below.
 
 ```yaml 
 apiVersion: apps/v1
@@ -379,7 +379,7 @@ spec:
 
 Services is what enables us to define how we will connect to the pods and be the front for them.
 
- The `port` is to what the service will be listending and then forwarding to the `targetport`.
+ The `port` is to what the service will be listening and then forwarding to the `targetport`.
 
 ```yaml
 apiVersion: v1
@@ -437,7 +437,7 @@ Just like that everything was created. Now we need to configuring the proxy serv
 kubectl exec -it python-proxy-server-xxxxxxx -- /bin/sh
 ```
 
-Now we need to modify the config.yaml file with the IP's from the previuos output.
+Now we need to modify the config.yaml file with the IP from the previous output.
 ```yaml
 proxy:
   listen:
@@ -463,7 +463,7 @@ python3 server-proxy.py
 Now we have everything up and configured but I also wanted to share how I tested my Project.
 
 
-We will be running two commands, one to see a response from the APP's and another to test the Deployment strategy by failing a server. The requests from my machine will be done to the Kubernates IP and because the are sending the request to port 80 our ingress and services will route our request.
+We will be running two commands, one to see a response from the APP's and another to test the Deployment strategy by failing a server. The requests from my machine will be done to the Kubernetes IP and because the are sending the request to port 80 our ingress and services will route our request.
 
 ```
 http http://192.168.99.101/ --print=hb
